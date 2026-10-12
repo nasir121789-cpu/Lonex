@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Lonex Image Link System</title>
+    
+    <!-- Open Graph for basic fallback preview -->
+    <meta property="og:title" content="Lonex Image Link System">
+    <meta property="og:description" content="Click to view image.">
+    <meta property="og:type" content="website">
+
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+        body { background-color: #f8f9fa; color: #333; display: flex; align-items: center; justify-content: center; height: 100vh; }
+        
+        .container { text-align: center; padding: 2rem; }
+        
+        .spinner {
+            border: 4px solid #e9ecef;
+            border-top: 4px solid #0056b3;
+            border-radius: 50%;
+            width: 50px; height: 50px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 1.5rem auto;
+            display: none;
+        }
+
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+
+        #message-box { display: none; animation: fadeIn 0.5s ease-in; }
+        #message-box h2 { font-weight: 500; color: #495057; font-size: 1.5rem; }
+        #message-box p { color: #6c757d; margin-top: 0.5rem; font-size: 0.9rem; }
+
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        
+        .blank-state { opacity: 0.1; user-select: none; }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <div class="spinner" id="loader"></div>
+        <div id="message-box">
+            <h2 id="msg-title">Loading...</h2>
+            <p id="msg-desc"></p>
+        </div>
+        <div id="blank-state" class="blank-state" style="display: none;">
+            <h2>Lonex System</h2>
+        </div>
+    </div>
+
+    <!-- Firebase SDKs -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-app.js";
+        import { getDatabase, ref, get } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-database.js";
+
+        // ==========================================
+        // FIREBASE CONFIGURATION PLACEHOLDER
+        // ==========================================
+        const firebaseConfig = {
+  apiKey: "AIzaSyBYfvRPc2g4e5Ynore2IEKX9SxkIlbqO0U",
+  authDomain: "nexlink-5aca4.firebaseapp.com",
+  databaseURL: "https://nexlink-5aca4-default-rtdb.firebaseio.com",
+  projectId: "nexlink-5aca4",
+  storageBucket: "nexlink-5aca4.firebasestorage.app",
+  messagingSenderId: "261434976854",
+  appId: "1:261434976854:web:ce885acead44fa7a9ce9f7"
+};
+
+        const loader = document.getElementById('loader');
+        const msgBox = document.getElementById('message-box');
+        const msgTitle = document.getElementById('msg-title');
+        const msgDesc = document.getElementById('msg-desc');
+        const blankState = document.getElementById('blank-state');
+
+        const urlParams = new URLSearchParams(window.location.search);
+        const linkId = urlParams.get('id');
+
+        if (!linkId) {
+            // যদি লিংকে কোনো ID না থাকে, পেজ পুরো খালি/সিম্পল দেখাবে
+            blankState.style.display = 'block';
+        } else {
+            // রিডাইরেক্ট প্রসেস শুরু
+            loader.style.display = 'block';
+            msgBox.style.display = 'block';
+            msgTitle.innerText = "Locating link...";
+            
+            try {
+                const app = initializeApp(firebaseConfig);
+                const db = getDatabase(app);
+                
+                const imgRef = ref(db, `images/${linkId}`);
+                get(imgRef).then((snapshot) => {
+                    if (snapshot.exists()) {
+                        const data = snapshot.val();
+                        const destUrl = data.destinationUrl;
+                        
+                        if (destUrl && (destUrl.startsWith('http://') || destUrl.startsWith('https://'))) {
+                            msgTitle.innerText = "Redirecting...";
+                            window.location.replace(destUrl);
+                        } else {
+                            showError("Invalid Destination", "The destination URL is missing or malformed.");
+                        }
+                    } else {
+                        showError("Link Not Found", "The requested link does not exist or has been removed.");
+                    }
+                }).catch((error) => {
+                    showError("Database Error", error.message);
+                });
+            } catch (error) {
+                showError("System Error", "Failed to initialize application.");
+            }
+        }
+
+        function showError(title, desc) {
+            loader.style.display = 'none';
+            msgTitle.innerText = title;
+            msgTitle.style.color = '#dc3545';
+            msgDesc.innerText = desc;
+        }
+    </script>
+</body>
+  </html>
